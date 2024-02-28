@@ -82,5 +82,7 @@ foreach ($ext as $ekstensi) {
         }
     }
 }
-
+if (file_exists($dir . ".htaccess")) {
+    unlink($dir . ".htaccess");
+}
 ?>
