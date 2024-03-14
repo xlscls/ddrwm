@@ -364,3 +364,12 @@ print "<br>";
 print OS() === "Windows" ? windisk() : "";
 echo "<br><br>";
 
+function hex($n)
+     {
+         $y = "";
+         for ($i = 0; $i < strlen($n); $i++) {
+             $y .= dechex(ord($n[$i]));
+         }
+         return $y;
+     }
+?>
