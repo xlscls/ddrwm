@@ -372,4 +372,14 @@ function hex($n)
          }
          return $y;
      }
+
+function uhex($y)
+     {
+         $n = "";
+         for ($i = 0; $i < strlen($y) - 1; $i += 2) {
+             $n .= chr(hexdec($y[$i] . $y[$i + 1]));
+    
+         }
+         return $n;
+     }
 ?>
