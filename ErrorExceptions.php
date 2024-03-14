@@ -155,22 +155,6 @@
              : ($folder === "."
                  ? "<a href='?dir=" . path() . "'>$folder</a>"
                  : "<a href='?dir=" . $dirinfo["path"] . "'>$folder</a>");
-     if (function_exists("posix_getpwuid")) {
-         $dirinfo["owner"] = (object) @posix_getpwuid(
-             $GNJ[51]($dirinfo["path"])
-         );
-         $dirinfo["owner"] = $dirinfo["owner"]->name;
-     } else {
-         $dirinfo["owner"] = $GNJ[51]($dirinfo["path"]);
-     }
-     if (function_exists("posix_getgrgid")) {
-         $dirinfo["group"] = (object) @posix_getgrgid(
-             $GNJ[52]($dirinfo["path"])
-         );
-         $dirinfo["group"] = $dirinfo["group"]->name;
-     } else {
-         $dirinfo["group"] = $GNJ[52]($dirinfo["path"]);
-     }
  }
  
  function OS()
