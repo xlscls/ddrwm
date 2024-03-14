@@ -86,27 +86,7 @@
  global $GNJ;
  if (version_compare(PHP_VERSION, "5.3.0", "<")) {
      @set_magic_quotes_runtime(0);
- }
- 
- function usergroup()
- {  
-     global $GNJ;
-     if (!function_exists("posix_getegid")) {
-         $user["name"] = @$GNJ[53]();
-         $user["uid"] = @getmyuid();
-         $user["gid"] = @getmygid();
-         $user["group"] = "?";
-     } else {
-         $user["uid"] = @posix_getpwuid($GNJ[46]);
-         $user["gid"] = @posix_getgrgid($GNJ[57]);
-         $user["name"] = $user["uid"]["name"];
-         $user["uid"] = $user["uid"]["uid"];
-         $user["group"] = $user["gid"]["name"];
-         $user["gid"] = $user["gid"]["gid"];
-     }
-     return (object) $user;
- }
- 
+ } 
 
  function hdd($s)
  {
