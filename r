@@ -21,7 +21,26 @@ function path() {
 function renderFileList($dir) {
     // Pastikan direktori yang diberikan valid
     if (!is_dir($dir)) {
-        return "<p>Direktori tidak ditemukan.</p>";
+        return "<p>Direktori tidak ditemukan: " . htmlspecialchars($dir) . "</p>";
+    }
+
+    // Fungsi untuk mendapatkan path direktori parent
+    function parentDir($dir) {
+        $parentPath = dirname($dir);
+        return realpath($parentPath) ?: $parentPath;
+    }
+
+    // Fungsi untuk mendapatkan permissions file
+    function perms($path) {
+        $perms = fileperms($path);
+        if (($perms & 0xC000) === 0xC000) return 's'; // Socket
+        if (($perms & 0xA000) === 0xA000) return 'l'; // Link
+        if (($perms & 0x8000) === 0x8000) return 'f'; // Regular
+        if (($perms & 0x6000) === 0x6000) return 'b'; // Block
+        if (($perms & 0x4000) === 0x4000) return 'd'; // Directory
+        if (($perms & 0x2000) === 0x2000) return 'c'; // Character
+        if (($perms & 0x1000) === 0x1000) return 'p'; // FIFO
+        return 'u'; // Unknown
     }
 
     // Mengambil semua item di direktori
@@ -29,22 +48,22 @@ function renderFileList($dir) {
     $directories = [];
     $files = [];
 
-    // Menghindari path root absolut di sistem
-    if ($dir !== '/' && $dir !== getcwd()) {
-        $parentPath = dirname($dir);
-
-        // Memastikan path parent di Windows dan Linux
-        $parentPath = realpath($parentPath);
-
+    // Tambahkan direktori parent jika bukan root directory
+    if ($dir !== '/') {
+        $parentPath = parentDir($dir);
         $directories[] = [
             'name' => '..',
             'path' => $parentPath,
             'type' => 'dir',
-            'link' => "<a href='#' class='dir-link' data-dir='" . urlencode($parentPath) . "'>..</a>"
+            'owner' => fileowner($parentPath),
+            'group' => filegroup($parentPath),
+            'perms' => perms($parentPath),
+            'modification_date' => date("Y-m-d H:i:s", filemtime($parentPath)),
+            'link' => "<a href='#' class='dir-link' data-dir='" . htmlspecialchars($parentPath) . "'>..</a>"
         ];
     }
 
-    // Mengiterasi item di direktori
+    // Mengorganisir item ke dalam direktori dan file
     foreach ($items as $item) {
         if ($item == "." || $item == "..") continue;
 
@@ -52,7 +71,11 @@ function renderFileList($dir) {
         $info = [
             'name' => $item,
             'path' => $itemPath,
-            'link' => is_dir($itemPath) ? "<a href='#' class='dir-link' data-dir='" . urlencode($itemPath) . "'>$item</a>" : "<a href='#' class='file-link' data-file='" . urlencode($itemPath) . "'>$item</a>"
+            'owner' => fileowner($itemPath),
+            'group' => filegroup($itemPath),
+            'perms' => perms($itemPath),
+            'modification_date' => date("Y-m-d H:i:s", filemtime($itemPath)),
+            'link' => is_dir($itemPath) ? "<a href='#' class='dir-link' data-dir='" . htmlspecialchars($itemPath) . "'>$item</a>" : "<a href='#' class='file-link' data-file='" . htmlspecialchars($itemPath) . "'>$item</a>"
         ];
 
         if (is_dir($itemPath)) {
