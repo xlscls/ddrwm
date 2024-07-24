@@ -127,19 +127,76 @@ echo renderFileList($dir);
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <style>
         body {
-            background-color: #343a40;
-            color: #fff;
-        }
-        .file-manager {
-            margin-top: 20px;
-        }
-        .file-link, .dir-link {
-            color: #198754;
-            text-decoration: none;
-        }
-        .file-link:hover, .dir-link:hover {
-            text-decoration: underline;
-        }
+    font-family: 'Courier New', Courier, monospace;
+    background-color: #121212;
+    color: #e0e0e0;
+}
+
+.sidebar-header h3 {
+    color: #00ff00;
+}
+
+.navbar, .modal-header {
+    background-color: #1e1e1e;
+}
+
+.modal-content {
+    background-color: #2e2e2e;
+    border: 1px solid #00ff00;
+}
+
+.modal-body {
+    color: #e0e0e0;
+}
+
+.list-unstyled a {
+    color: #00ff00;
+}
+
+.list-unstyled a:hover {
+    color: #ff00ff;
+}
+
+h2 {
+    color: #00ff00;
+}
+
+#file-list {
+    border: 1px solid #00ff00;
+    border-radius: 5px;
+    padding: 15px;
+    margin-top: 20px;
+}
+
+.table {
+    color: #e0e0e0;
+    border-color: #00ff00;
+}
+
+.table thead th {
+    background-color: #1e1e1e;
+}
+
+.table tbody tr:nth-child(even) {
+    background-color: #2e2e2e;
+}
+
+.table tbody tr:hover {
+    background-color: #3e3e3e;
+}
+
+@media (max-width: 767px) {
+    #sidebar {
+        position: relative;
+        height: auto;
+        width: 100%;
+    }
+    #sidebar ul {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-around;
+    }
+}
     </style>
 </head>
 <body>
@@ -257,6 +314,27 @@ $(document).ready(function() {
 function show(id) {
     document.getElementById(id).style.display = 'block';
 }
+document.addEventListener('DOMContentLoaded', function() {
+    // Example function to handle file creation
+    document.getElementById('create-file-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const fileName = document.getElementById('file-name').value;
+        // AJAX call to create the file
+        console.log('Creating file:', fileName);
+        // Your AJAX logic here
+    });
+
+    // Example function to update file list
+    function updateFileList() {
+        // AJAX call to fetch and display the list of files
+        console.log('Fetching file list');
+        // Your AJAX logic here
+    }
+
+    // Call updateFileList on page load
+    updateFileList();
+});
+
 </script>
 </body>
 </html>
