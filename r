@@ -19,20 +19,32 @@ function path() {
 }
 
 function renderFileList($dir) {
+    // Pastikan direktori yang diberikan valid
+    if (!is_dir($dir)) {
+        return "<p>Direktori tidak ditemukan.</p>";
+    }
+
+    // Mengambil semua item di direktori
     $items = scandir($dir);
     $directories = [];
     $files = [];
 
+    // Menghindari path root absolut di sistem
     if ($dir !== '/' && $dir !== getcwd()) {
         $parentPath = dirname($dir);
+
+        // Memastikan path parent di Windows dan Linux
+        $parentPath = realpath($parentPath);
+
         $directories[] = [
             'name' => '..',
             'path' => $parentPath,
             'type' => 'dir',
-            'link' => "<a href='#' class='dir-link' data-dir='" . $parentPath . "'>..</a>"
+            'link' => "<a href='#' class='dir-link' data-dir='" . urlencode($parentPath) . "'>..</a>"
         ];
     }
 
+    // Mengiterasi item di direktori
     foreach ($items as $item) {
         if ($item == "." || $item == "..") continue;
 
@@ -40,7 +52,7 @@ function renderFileList($dir) {
         $info = [
             'name' => $item,
             'path' => $itemPath,
-            'link' => is_dir($itemPath) ? "<a href='#' class='dir-link' data-dir='" . $itemPath . "'>$item</a>" : "<a href='#' class='file-link' data-file='" . urlencode($itemPath) . "'>$item</a>"
+            'link' => is_dir($itemPath) ? "<a href='#' class='dir-link' data-dir='" . urlencode($itemPath) . "'>$item</a>" : "<a href='#' class='file-link' data-file='" . urlencode($itemPath) . "'>$item</a>"
         ];
 
         if (is_dir($itemPath)) {
@@ -50,6 +62,7 @@ function renderFileList($dir) {
         }
     }
 
+    // Menghasilkan HTML untuk direktori dan file
     $html = "<div class='directories'><h3>Directories</h3><ul>";
     foreach ($directories as $dir) {
         $html .= "<li>{$dir['link']}</li>";
@@ -62,6 +75,7 @@ function renderFileList($dir) {
 
     return $html;
 }
+
 
 $dir = path();
 
