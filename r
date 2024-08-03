@@ -416,12 +416,7 @@ a:hover {
 <script>
     $(document).ready(function() {
     function refreshContainer() {
-        $.get(window.location.href, function(data) {
-            $('#container').html(data);
-            console.log('refresh container')
-        }).fail(function() {
-            alert('Failed to refresh content.');
-        });
+        location.reload();
     }
 
     $(document).on('click', '.dir-link', function(event) {
@@ -435,7 +430,8 @@ a:hover {
             // Update cookie with the new directory
             document.cookie = "current_dir=" + encodeURIComponent(dir) + "; path=/; max-age=7200"; // 2 hours
             refreshContainer();
-        }).fail(function() {
+        }).fail(function(jqXHR, textStatus, errorThrown) {
+            console.error('Failed to load directory:', textStatus, errorThrown);
             alert('Failed to load directory.');
         });
     });
@@ -445,7 +441,8 @@ a:hover {
         var file = $(this).data('file');
         $.get('?action=view&file=' + encodeURIComponent(file), function(data) {
             alert(data);
-        }).fail(function() {
+        }).fail(function(jqXHR, textStatus, errorThrown) {
+            console.error('Failed to load file:', textStatus, errorThrown);
             alert('Failed to load file.');
         });
     });
@@ -454,7 +451,8 @@ a:hover {
         event.preventDefault();
         $.post('?action=create_folder', $(this).serialize(), function() {
             refreshContainer();
-        }).fail(function() {
+        }).fail(function(jqXHR, textStatus, errorThrown) {
+            console.error('Failed to create folder:', textStatus, errorThrown);
             alert('Failed to create folder.');
         });
     });
@@ -463,7 +461,8 @@ a:hover {
         event.preventDefault();
         $.post('?action=create_file', $(this).serialize(), function() {
             refreshContainer();
-        }).fail(function() {
+        }).fail(function(jqXHR, textStatus, errorThrown) {
+            console.error('Failed to create file:', textStatus, errorThrown);
             alert('Failed to create file.');
         });
     });
@@ -480,13 +479,13 @@ a:hover {
             success: function() {
                 refreshContainer();
             },
-            error: function() {
+            error: function(jqXHR, textStatus, errorThrown) {
+                console.error('Failed to upload file:', textStatus, errorThrown);
                 alert('Failed to upload file.');
             }
         });
     });
 });
-
 </script>
 </body>
 </html>
