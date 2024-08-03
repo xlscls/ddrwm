@@ -103,6 +103,7 @@ if (isset($_GET['action'])) {
                 } else {
                     echo "Folder sudah ada.";
                 }
+                echo renderFileList($dir); // Return updated file list
             }
             break;
 
@@ -115,6 +116,7 @@ if (isset($_GET['action'])) {
                 } else {
                     echo "File sudah ada.";
                 }
+                echo renderFileList($dir); // Return updated file list
             }
             break;
 
@@ -123,6 +125,7 @@ if (isset($_GET['action'])) {
                 $file = $_FILES['upload_file'];
                 $targetFile = $dir . DIRECTORY_SEPARATOR . basename($file['name']);
                 move_uploaded_file($file['tmp_name'], $targetFile);
+                echo renderFileList($dir); // Return updated file list
             }
             break;
 
@@ -141,7 +144,6 @@ if (isset($_GET['action'])) {
     }
     exit();
 }
-
 if (isset($_GET['dir'])) {
     echo renderFileList($dir);
     exit();
@@ -413,12 +415,12 @@ a:hover {
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script>
     $(document).ready(function() {
-    function refreshFileList() {
-        var currentDir = encodeURIComponent($('#current-dir').text());
-        $.get('?dir=' + currentDir, function(data) {
-            $('#file-list').html(data);
+    function refreshContainer() {
+        $.get(window.location.href, function(data) {
+            $('#container').html(data);
+            console.log('refresh container')
         }).fail(function() {
-            alert('Failed to load directory.');
+            alert('Failed to refresh content.');
         });
     }
 
@@ -432,6 +434,7 @@ a:hover {
 
             // Update cookie with the new directory
             document.cookie = "current_dir=" + encodeURIComponent(dir) + "; path=/; max-age=7200"; // 2 hours
+            refreshContainer();
         }).fail(function() {
             alert('Failed to load directory.');
         });
@@ -447,11 +450,10 @@ a:hover {
         });
     });
 
-    // Handle form submissions to create folders and files
     $('#create-folder-form').submit(function(event) {
         event.preventDefault();
         $.post('?action=create_folder', $(this).serialize(), function() {
-            refreshFileList();
+            refreshContainer();
         }).fail(function() {
             alert('Failed to create folder.');
         });
@@ -460,7 +462,7 @@ a:hover {
     $('#create-file-form').submit(function(event) {
         event.preventDefault();
         $.post('?action=create_file', $(this).serialize(), function() {
-            refreshFileList();
+            refreshContainer();
         }).fail(function() {
             alert('Failed to create file.');
         });
@@ -476,7 +478,7 @@ a:hover {
             processData: false,
             contentType: false,
             success: function() {
-                refreshFileList();
+                refreshContainer();
             },
             error: function() {
                 alert('Failed to upload file.');
@@ -484,6 +486,7 @@ a:hover {
         });
     });
 });
+
 </script>
 </body>
 </html>
