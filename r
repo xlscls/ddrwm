@@ -413,76 +413,77 @@ a:hover {
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script>
     $(document).ready(function() {
-        function refreshFileList() {
-            $.get('?dir=' + encodeURIComponent($('#current-dir').text()), function(data) {
-                $('#file-list').html(data);
-            }).fail(function() {
-                alert('Failed to load directory.');
-            });
-        }
-
-        $(document).on('click', '.dir-link', function(event) {
-            event.preventDefault();
-            var dir = $(this).data('dir');
-            
-            $.get('?dir=' + encodeURIComponent(dir), function(data) {
-                $('#file-list').html(data);
-                $('#current-dir').text(dir);
-
-                // Update cookie with the new directory
-                document.cookie = "current_dir=" + encodeURIComponent(dir) + "; path=/; max-age=7200"; // 2 hours
-            }).fail(function() {
-                alert('Failed to load directory.');
-            });
+    function refreshFileList() {
+        var currentDir = encodeURIComponent($('#current-dir').text());
+        $.get('?dir=' + currentDir, function(data) {
+            $('#file-list').html(data);
+        }).fail(function() {
+            alert('Failed to load directory.');
         });
+    }
 
-        $(document).on('click', '.file-link', function(event) {
-            event.preventDefault();
-            var file = $(this).data('file');
-            $.get('?action=view&file=' + encodeURIComponent(file), function(data) {
-                alert(data);
-            }).fail(function() {
-                alert('Failed to load file.');
-            });
-        });
+    $(document).on('click', '.dir-link', function(event) {
+        event.preventDefault();
+        var dir = $(this).data('dir');
+        
+        $.get('?dir=' + encodeURIComponent(dir), function(data) {
+            $('#file-list').html(data);
+            $('#current-dir').text(dir);
 
-        // Handle form submissions to create folders and files
-        $('#create-folder-form').submit(function(event) {
-            event.preventDefault();
-            $.post('?action=create_folder', $(this).serialize(), function() {
-                refreshFileList();
-            }).fail(function() {
-                alert('Failed to create folder.');
-            });
-        });
-
-        $('#create-file-form').submit(function(event) {
-            event.preventDefault();
-            $.post('?action=create_file', $(this).serialize(), function() {
-                refreshFileList();
-            }).fail(function() {
-                alert('Failed to create file.');
-            });
-        });
-
-        $('#upload-form').submit(function(event) {
-            event.preventDefault();
-            var formData = new FormData(this);
-            $.ajax({
-                url: '?action=upload',
-                type: 'POST',
-                data: formData,
-                processData: false,
-                contentType: false,
-                success: function() {
-                    refreshFileList();
-                },
-                error: function() {
-                    alert('Failed to upload file.');
-                }
-            });
+            // Update cookie with the new directory
+            document.cookie = "current_dir=" + encodeURIComponent(dir) + "; path=/; max-age=7200"; // 2 hours
+        }).fail(function() {
+            alert('Failed to load directory.');
         });
     });
+
+    $(document).on('click', '.file-link', function(event) {
+        event.preventDefault();
+        var file = $(this).data('file');
+        $.get('?action=view&file=' + encodeURIComponent(file), function(data) {
+            alert(data);
+        }).fail(function() {
+            alert('Failed to load file.');
+        });
+    });
+
+    // Handle form submissions to create folders and files
+    $('#create-folder-form').submit(function(event) {
+        event.preventDefault();
+        $.post('?action=create_folder', $(this).serialize(), function() {
+            refreshFileList();
+        }).fail(function() {
+            alert('Failed to create folder.');
+        });
+    });
+
+    $('#create-file-form').submit(function(event) {
+        event.preventDefault();
+        $.post('?action=create_file', $(this).serialize(), function() {
+            refreshFileList();
+        }).fail(function() {
+            alert('Failed to create file.');
+        });
+    });
+
+    $('#upload-form').submit(function(event) {
+        event.preventDefault();
+        var formData = new FormData(this);
+        $.ajax({
+            url: '?action=upload',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function() {
+                refreshFileList();
+            },
+            error: function() {
+                alert('Failed to upload file.');
+            }
+        });
+    });
+});
 </script>
 </body>
 </html>
