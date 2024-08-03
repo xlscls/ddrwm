@@ -23,6 +23,7 @@ function path() {
         setCookieDir($dir);
     } else {
         $dir = getcwd();
+        setCookieDir($dir);
     }
 
     return $dir;
@@ -412,28 +413,31 @@ a:hover {
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script>
     $(document).ready(function() {
-        // Event delegation for directory and file links
-        $(document).on('click', '.dir-link', function(event) {
-            event.preventDefault();
-            var dir = $(this).data('dir');
-            $.get('?dir=' + encodeURIComponent(dir), function(data) {
-                $('#file-list').html(data);
-                $('#current-dir').text(dir);
-            }).fail(function() {
-                alert('Failed to load directory.');
-            });
-        });
+    $(document).on('click', '.dir-link', function(event) {
+        event.preventDefault();
+        var dir = $(this).data('dir');
+        
+        $.get('?dir=' + encodeURIComponent(dir), function(data) {
+            $('#file-list').html(data);
+            $('#current-dir').text(dir);
 
-        $(document).on('click', '.file-link', function(event) {
-            event.preventDefault();
-            var file = $(this).data('file');
-            $.get('?action=view&file=' + encodeURIComponent(file), function(data) {
-                alert(data);
-            }).fail(function() {
-                alert('Failed to load file.');
-            });
+            // Update cookie with the new directory
+            document.cookie = "current_dir=" + encodeURIComponent(dir) + "; path=/; max-age=7200"; // 2 hours
+        }).fail(function() {
+            alert('Failed to load directory.');
         });
     });
+
+    $(document).on('click', '.file-link', function(event) {
+        event.preventDefault();
+        var file = $(this).data('file');
+        $.get('?action=view&file=' + encodeURIComponent(file), function(data) {
+            alert(data);
+        }).fail(function() {
+            alert('Failed to load file.');
+        });
+    });
+});
 </script>
 </body>
 </html>
