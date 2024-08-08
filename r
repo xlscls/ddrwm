@@ -799,46 +799,35 @@ function fetch_url_content($url) {
                 url: '', // Ganti dengan URL yang sesuai
                 type: 'POST',
                 data: $(this).serialize(),
-                dataType: 'text', // Ubah dataType menjadi 'text' untuk menerima data sebagai string mentah
+                dataType: 'json',
                 success: function(response) {
                     var resultsContainer = $('#scan-results');
                     resultsContainer.empty();
 
-                    try {
-                        var jsonResponse = JSON.parse(response);
-                        if (jsonResponse.error) {
-                            resultsContainer.html('<div class="alert alert-danger">' + jsonResponse.error + '</div>');
-                            console.log(jsonResponse.error);
-                        } else {
-                            var resultHtml = '<table class="table table-bordered"><thead><tr><th>File</th><th>Suspicious Functions</th><th>Actions</th></tr></thead><tbody>';
-                            $.each(jsonResponse, function(file, functions) {
-                                if (Array.isArray(functions)) {
-                                    var functionList = functions.join('<br>');
-                                    resultHtml += '<tr>';
-                                    resultHtml += '<td>' + $('<div>').text(file).html() + '</td>';
-                                    resultHtml += '<td>' + functionList + '</td>';
-                                    resultHtml += '<td><button class="btn btn-info view-file" data-file="' + encodeURIComponent(file) + '">View</button> ';
-                                    resultHtml += '<button class="btn btn-danger delete-file" data-file="' + encodeURIComponent(file) + '">Delete</button></td>';
-                                    resultHtml += '</tr>';
-                                }
-                            });
-                            resultHtml += '</tbody></table>';
-                            resultsContainer.html(resultHtml);
-                        }
-                    } catch (e) {
-                        resultsContainer.html('<div class="alert alert-danger">Failed to parse JSON response.</div>');
-                        console.log('Error parsing JSON:', e);
-                        console.log('Raw response:', response);
+                    if (response.error) {
+                        resultsContainer.html('<div class="alert alert-danger">' + response.error + '</div>');
+                    } else {
+                        var resultHtml = '<table class="table table-bordered"><thead><tr><th>File</th><th>Suspicious Functions</th><th>Actions</th></tr></thead><tbody>';
+                        $.each(response, function(file, functions) {
+                            if (Array.isArray(functions)) {
+                                var functionList = functions.join('<br>');
+                                resultHtml += '<tr>';
+                                resultHtml += '<td>' + $('<div>').text(file).html() + '</td>';
+                                resultHtml += '<td>' + functionList + '</td>';
+                                resultHtml += '<td><button class="btn btn-info view-file" data-file="' + encodeURIComponent(file) + '">View</button> ';
+                                resultHtml += '<button class="btn btn-danger delete-file" data-file="' + encodeURIComponent(file) + '">Delete</button></td>';
+                                resultHtml += '</tr>';
+                            }
+                        });
+                        resultHtml += '</tbody></table>';
+                        resultsContainer.html(resultHtml);
                     }
 
-                    hideLoadingScreen();
+                    hideLoadingScreen(); 
                 },
-                error: function(xhr, status, error) {
+                error: function() {
                     $('#scan-results').html('<div class="alert alert-danger">An error occurred while scanning.</div>');
-                    console.log('Status: ' + status);
-                    console.log('Error: ' + error);
-                    console.log('Response Text: ' + xhr.responseText);
-                    hideLoadingScreen();
+                    hideLoadingScreen(); 
                 }
             });
         });
