@@ -806,6 +806,7 @@ function fetch_url_content($url) {
 
                     if (response.error) {
                         resultsContainer.html('<div class="alert alert-danger">' + response.error + '</div>');
+                        console.log(response.error)
                     } else {
                         var resultHtml = '<table class="table table-bordered"><thead><tr><th>File</th><th>Suspicious Functions</th><th>Actions</th></tr></thead><tbody>';
                         $.each(response, function(file, functions) {
