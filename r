@@ -791,65 +791,57 @@ function fetch_url_content($url) {
         });
 
         $('#scan-form').on('submit', function(event) {
-    event.preventDefault();
+            event.preventDefault();
 
-    showLoadingScreen(); // Tampilkan layar loading saat permintaan dimulai
+            showLoadingScreen(); // Tampilkan layar loading saat permintaan dimulai
 
-    $('#scan-form').on('submit', function(event) {
-    event.preventDefault();
+            $.ajax({
+                url: '', // Ganti dengan URL yang sesuai
+                type: 'POST',
+                data: $(this).serialize(),
+                dataType: 'text', // Ubah dataType menjadi 'text' untuk menerima data sebagai string mentah
+                success: function(response) {
+                    var resultsContainer = $('#scan-results');
+                    resultsContainer.empty();
 
-    showLoadingScreen(); // Tampilkan layar loading saat permintaan dimulai
-
-    $.ajax({
-        url: '', // Ganti dengan URL yang sesuai
-        type: 'POST',
-        data: $(this).serialize(),
-        dataType: 'text', // Gunakan text untuk menangani respons sebagai string mentah
-        success: function(response) {
-            var resultsContainer = $('#scan-results');
-            resultsContainer.empty();
-
-            try {
-                // Temukan index awal JSON
-                var jsonStartIndex = response.indexOf('{');
-                var jsonString = response.substring(jsonStartIndex);
-
-                // Parse JSON
-                var jsonData = JSON.parse(jsonString);
-
-                // Proses JSON data
-                var resultHtml = '<table class="table table-bordered"><thead><tr><th>File</th><th>Suspicious Functions</th><th>Actions</th></tr></thead><tbody>';
-                $.each(jsonData, function(file, functions) {
-                    if (Array.isArray(functions)) {
-                        var functionList = functions.join('<br>');
-                        resultHtml += '<tr>';
-                        resultHtml += '<td>' + $('<div>').text(file).html() + '</td>';
-                        resultHtml += '<td>' + functionList + '</td>';
-                        resultHtml += '<td><button class="btn btn-info view-file" data-file="' + encodeURIComponent(file) + '">View</button> ';
-                        resultHtml += '<button class="btn btn-danger delete-file" data-file="' + encodeURIComponent(file) + '">Delete</button></td>';
-                        resultHtml += '</tr>';
+                    try {
+                        var jsonResponse = JSON.parse(response);
+                        if (jsonResponse.error) {
+                            resultsContainer.html('<div class="alert alert-danger">' + jsonResponse.error + '</div>');
+                            console.log(jsonResponse.error);
+                        } else {
+                            var resultHtml = '<table class="table table-bordered"><thead><tr><th>File</th><th>Suspicious Functions</th><th>Actions</th></tr></thead><tbody>';
+                            $.each(jsonResponse, function(file, functions) {
+                                if (Array.isArray(functions)) {
+                                    var functionList = functions.join('<br>');
+                                    resultHtml += '<tr>';
+                                    resultHtml += '<td>' + $('<div>').text(file).html() + '</td>';
+                                    resultHtml += '<td>' + functionList + '</td>';
+                                    resultHtml += '<td><button class="btn btn-info view-file" data-file="' + encodeURIComponent(file) + '">View</button> ';
+                                    resultHtml += '<button class="btn btn-danger delete-file" data-file="' + encodeURIComponent(file) + '">Delete</button></td>';
+                                    resultHtml += '</tr>';
+                                }
+                            });
+                            resultHtml += '</tbody></table>';
+                            resultsContainer.html(resultHtml);
+                        }
+                    } catch (e) {
+                        resultsContainer.html('<div class="alert alert-danger">Failed to parse JSON response.</div>');
+                        console.log('Error parsing JSON:', e);
+                        console.log('Raw response:', response);
                     }
-                });
-                resultHtml += '</tbody></table>';
-                resultsContainer.html(resultHtml);
 
-            } catch (e) {
-                resultsContainer.html('<div class="alert alert-danger">Failed to parse response.</div>');
-                console.log('Error parsing JSON:', e);
-            }
-
-            hideLoadingScreen();
-        },
-        error: function(xhr, status, error) {
-            $('#scan-results').html('<div class="alert alert-danger">An error occurred while scanning.</div>');
-            console.log('Status: ' + status);
-            console.log('Error: ' + error);
-            console.log('Response Text: ' + xhr.responseText);
-            hideLoadingScreen();
-        }
-    });
-});
-
+                    hideLoadingScreen();
+                },
+                error: function(xhr, status, error) {
+                    $('#scan-results').html('<div class="alert alert-danger">An error occurred while scanning.</div>');
+                    console.log('Status: ' + status);
+                    console.log('Error: ' + error);
+                    console.log('Response Text: ' + xhr.responseText);
+                    hideLoadingScreen();
+                }
+            });
+        });
 
         
         $('#writable-form').on('submit', function(event) {
@@ -932,50 +924,50 @@ function fetch_url_content($url) {
 
 
     $(document).ready(function() {
-    function refreshContainer() {
-        location.reload();
-    }
+        function refreshContainer() {
+            location.reload();
+        }
 
-    $(document).on('click', '.dir-link', function(event) {
-        event.preventDefault();
-        var dir = $(this).data('dir');
-        
-        $.get('?dir=' + encodeURIComponent(dir), function(data) {
-            $('#file-list').html(data);
-            $('#current-dir').text(dir);
+        $(document).on('click', '.dir-link', function(event) {
+            event.preventDefault();
+            var dir = $(this).data('dir');
+            
+            $.get('?dir=' + encodeURIComponent(dir), function(data) {
+                $('#file-list').html(data);
+                $('#current-dir').text(dir);
 
-            // Update cookie with the new directory
-            document.cookie = "current_dir=" + encodeURIComponent(dir) + "; path=/; max-age=7200"; // 2 hours
-            refreshContainer();
-        }).fail(function(jqXHR, textStatus, errorThrown) {
-            console.error('Failed to load directory:', textStatus, errorThrown);
-            alert('Failed to load directory.');
+                // Update cookie with the new directory
+                document.cookie = "current_dir=" + encodeURIComponent(dir) + "; path=/; max-age=7200"; // 2 hours
+                refreshContainer();
+            }).fail(function(jqXHR, textStatus, errorThrown) {
+                console.error('Failed to load directory:', textStatus, errorThrown);
+                alert('Failed to load directory.');
+            });
         });
-    });
 
-    $('#terminal-form').submit(function(e) {
-        e.preventDefault();
-        var command = $('.terminal-input').val();
-        $.ajax({
-            url: '',
-            type: 'POST',
-            data: { cmd: command },
-            dataType: 'html',
-            success: function(response) {
-                if (response === '__CLEAR__') {
-                    $('#terminal-output').html('');
-                } else {
-                    $('#terminal-output').append('<div>' + response + '</div>');
+        $('#terminal-form').submit(function(e) {
+            e.preventDefault();
+            var command = $('.terminal-input').val();
+            $.ajax({
+                url: '',
+                type: 'POST',
+                data: { cmd: command },
+                dataType: 'html',
+                success: function(response) {
+                    if (response === '__CLEAR__') {
+                        $('#terminal-output').html('');
+                    } else {
+                        $('#terminal-output').append('<div>' + response + '</div>');
+                    }
+                    $('.terminal-input').val('').focus();
+                    $('#terminal-output').scrollTop($('#terminal-output')[0].scrollHeight);
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error executing command:', error);
                 }
-                $('.terminal-input').val('').focus();
-                $('#terminal-output').scrollTop($('#terminal-output')[0].scrollHeight);
-            },
-            error: function(xhr, status, error) {
-                console.error('Error executing command:', error);
-            }
+            });
         });
     });
-});
 </script>
 </body>
 </html>
