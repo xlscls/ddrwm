@@ -795,21 +795,31 @@ function fetch_url_content($url) {
 
     showLoadingScreen(); // Tampilkan layar loading saat permintaan dimulai
 
+    $('#scan-form').on('submit', function(event) {
+    event.preventDefault();
+
+    showLoadingScreen(); // Tampilkan layar loading saat permintaan dimulai
+
     $.ajax({
         url: '', // Ganti dengan URL yang sesuai
         type: 'POST',
         data: $(this).serialize(),
-        dataType: 'json',
+        dataType: 'text', // Gunakan text untuk menangani respons sebagai string mentah
         success: function(response) {
             var resultsContainer = $('#scan-results');
             resultsContainer.empty();
 
-            if (response.error) {
-                resultsContainer.html('<div class="alert alert-danger">' + response.error + '</div>');
-                console.log(response.error);
-            } else {
+            try {
+                // Temukan index awal JSON
+                var jsonStartIndex = response.indexOf('{');
+                var jsonString = response.substring(jsonStartIndex);
+
+                // Parse JSON
+                var jsonData = JSON.parse(jsonString);
+
+                // Proses JSON data
                 var resultHtml = '<table class="table table-bordered"><thead><tr><th>File</th><th>Suspicious Functions</th><th>Actions</th></tr></thead><tbody>';
-                $.each(response, function(file, functions) {
+                $.each(jsonData, function(file, functions) {
                     if (Array.isArray(functions)) {
                         var functionList = functions.join('<br>');
                         resultHtml += '<tr>';
@@ -822,6 +832,10 @@ function fetch_url_content($url) {
                 });
                 resultHtml += '</tbody></table>';
                 resultsContainer.html(resultHtml);
+
+            } catch (e) {
+                resultsContainer.html('<div class="alert alert-danger">Failed to parse response.</div>');
+                console.log('Error parsing JSON:', e);
             }
 
             hideLoadingScreen();
